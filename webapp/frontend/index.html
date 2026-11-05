@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Door Entry Web | Legrand & BTicino Intercom</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚪</text></svg>">
+</head>
+<body>
+  <!-- Header de Navegación -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="logo-icon">🚪</div>
+      <div class="brand-info">
+        <h1>Door Entry <span class="badge-web">Web</span></h1>
+        <p class="brand-sub">Classe 100X / 300X / HomeTouch</p>
+      </div>
+    </div>
+    <div class="nav-status">
+      <div id="certStatusBadge" class="cert-badge valid" title="Estado del certificado de cliente mTLS" data-i18n-title="cert_badge_title">
+        <span class="cert-icon">🔐</span>
+        <span id="certText" class="cert-text" data-i18n="cert_checking">Cert mTLS: Comprobando...</span>
+      </div>
+      <button id="btnOpenCertModal" class="btn-sm btn-outline" data-i18n="btn_renew_cert">🔑 Generar / Renovar client.crt</button>
+      <button id="btnEnableNotifications" class="btn-sm btn-outline" title="Activar notificaciones de escritorio" data-i18n-title="btn_notifications_title" data-i18n="btn_notifications">🔔 Notificaciones</button>
+      <button id="btnSimulateCall" class="btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" title="Probar sonido y aviso de timbre de casa" data-i18n-title="btn_test_ring_title" data-i18n="btn_test_ring">🔔 Probar Timbre</button>
+      <div id="connectionStatus" class="status-indicator online">
+        <span class="status-dot"></span>
+        <span class="status-text" data-i18n="status_autonomous">Videoportero Autónomo</span>
+      </div>
+      <!-- Selector de Idioma ES / EN -->
+      <div class="lang-switcher" id="langSwitcher" role="group" aria-label="Language selector">
+        <button type="button" class="lang-btn active" data-lang="es" id="btnLangEs" title="Cambiar a Español">ES</button>
+        <button type="button" class="lang-btn" data-lang="en" id="btnLangEn" title="Switch to English">EN</button>
+      </div>
+      <div id="userMenu" class="user-menu hidden">
+        <span id="userEmail" class="user-email">usuario@ejemplo.com</span>
+        <button id="btnLogout" class="btn-sm btn-outline" data-i18n="btn_logout">Cerrar Sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Banner de Notificación de Timbre Entrante -->
+    <div id="incomingCallBanner" class="incoming-call-banner hidden">
+      <div class="incoming-call-content">
+        <div class="ringing-icon-wrapper">
+          <span class="ringing-bell">🔔</span>
+        </div>
+        <div class="incoming-call-info">
+          <h3 data-i18n="incoming_title">¡ESTÁN LLAMANDO AL TIMBRE EN LA PLACA DE CALLE!</h3>
+          <p id="incomingCallerText">Placa de calle exterior PE0 &bull; Llamada entrante en curso</p>
+          <div class="incoming-call-timer"><span data-i18n="incoming_time_left">Tiempo para contestar:</span> <strong id="ringCountdown">45s</strong></div>
+        </div>
+        <div class="incoming-call-actions">
+          <button id="btnAnswerCall" class="btn-answer">
+            <span data-i18n="btn_answer">📹 Atender y Ver Vídeo</span>
+          </button>
+          <button id="btnQuickDoorOpen" class="btn-door-quick">
+            <span data-i18n="btn_open_direct">🔓 Abrir Puerta Directamente</span>
+          </button>
+          <button id="btnRejectCall" class="btn-call btn-hangup">
+            <span data-i18n="btn_reject">📵 Rechazar / Colgar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Vista de Autenticación -->
+    <section id="authSection" class="auth-section">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-icon">🔐</div>
+          <h2>Iniciar Sesión</h2>
+          <p>Introduce tu cuenta de Legrand / BTicino para conectar con tu videoportero Classe 100X:</p>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+          <div class="input-group">
+            <label for="inputEmail">Correo Electrónico:</label>
+            <input type="email" id="inputEmail" placeholder="usuario@ejemplo.com" required autocomplete="username">
+          </div>
+
+          <div class="input-group">
+            <label for="inputPassword">Contraseña:</label>
+            <input type="password" id="inputPassword" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+
+          <div class="checkbox-group" style="margin-bottom: 1.25rem;">
+            <label>
+              <input type="checkbox" id="checkRemember" checked>
+              Recordar sesión en este servidor
+            </label>
+          </div>
+
+          <div id="loginError" class="alert-error hidden"></div>
+
+          <button type="submit" id="btnLogin" class="btn btn-primary btn-block">
+            <span class="btn-text">🔑 Iniciar Sesión</span>
+            <span class="spinner hidden" id="loginSpinner"></span>
+          </button>
+        </form>
+
+        <div class="auth-footer" style="margin-top: 1.5rem;">
+          <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.75rem;">
+            🔒 Autenticación programática directa con Azure AD B2C / Legrand Eliot Cloud.
+          </p>
+          <details style="text-align: left; font-size: 0.78rem; color: #64748b; cursor: pointer;">
+            <summary style="outline: none;">Opciones avanzadas (OAuth / Token directo)</summary>
+            <div style="padding: 0.75rem; background: rgba(15,23,42,0.6); border-radius: 6px; margin-top: 0.5rem; border: 1px solid rgba(255,255,255,0.06);">
+              <p style="margin-bottom: 0.5rem;">Si prefieres autorizar en el navegador oficial de Legrand:</p>
+              <a id="btnOAuthLink" href="#" target="_blank" class="btn-sm btn-secondary" style="display: inline-block; text-decoration: none; margin-bottom: 0.5rem;">
+                🌐 Abrir Portal Web Legrand
+              </a>
+              <div style="margin-top: 0.5rem;">
+                <label for="inputManualCode" style="display:block; margin-bottom: 0.2rem; color: #cbd5e1;">Código de redirección o Token:</label>
+                <input type="text" id="inputManualCode" placeholder="com.legrandgroup.c100x://... o eyJ..." style="width: 100%; padding: 0.4rem; font-size: 0.75rem; background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 4px;">
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Vista Principal / Dashboard -->
+    <section id="dashboardSection" class="dashboard-section hidden">
+      <!-- Selector de Instalación y Pasarela -->
+      <div class="selection-bar card">
+        <div class="selector-col">
+          <label for="selectPlant" data-i18n="lbl_plant">Instalación / Planta:</label>
+          <select id="selectPlant" class="form-select">
+            <option value="" data-i18n="opt_loading_plants">Cargando instalaciones...</option>
+          </select>
+        </div>
+        <div class="selector-col">
+          <label for="selectGateway" data-i18n="lbl_gateway">Videoportero / Pasarela:</label>
+          <select id="selectGateway" class="form-select">
+            <option value="" data-i18n="opt_select_gateway">Seleccionar pasarela...</option>
+          </select>
+        </div>
+        <div class="selector-col action-col">
+          <button id="btnRefresh" class="btn-sm btn-secondary" title="Actualizar dispositivos" data-i18n-title="btn_refresh_title" data-i18n="btn_refresh">🔄 Actualizar</button>
+        </div>
+      </div>
+
+      <!-- Intercomunicador Digital Twin - BTicino Classe 100X -->
+      <div class="intercom-stage">
+        <div class="intercom-device-frame" id="intercomDevice">
+          <!-- Imagen de fondo de la unidad física -->
+          <img src="/static/assets/classe100x_standby.jpg" class="intercom-bg-img" alt="BTicino Classe 100X" />
+
+          <!-- Pantalla LCD integrada en la posición exacta del display -->
+          <div class="intercom-screen-frame">
+            <!-- Toast de confirmación de pulsaciones -->
+            <div id="lcdToast" class="lcd-toast">
+              <span id="lcdToastIcon">✨</span>
+              <span id="lcdToastMsg">Acción</span>
+            </div>
+
+            <!-- Alerta de llamada/timbre entrante en LCD -->
+            <div id="lcdRingAlert" class="lcd-ring-alert hidden">
+              <div class="ring-icon">🔔</div>
+              <h4 data-i18n="lcd_ring_title">¡TIMBRE EN CASA!</h4>
+              <p data-i18n="lcd_ring_desc">Toca el botón 📞 (descolgar) para responder</p>
+            </div>
+
+            <!-- Viewport de Video -->
+            <div class="video-viewport" id="videoViewport">
+              <!-- Pantalla de Standby -->
+              <div class="video-placeholder" id="videoPlaceholder">
+                <div class="lcd-standby-clock" id="lcdClock">--:--</div>
+                <div class="lcd-standby-date" id="lcdDate">MODO EN ESPERA</div>
+                <div class="lcd-standby-badge">
+                  <span class="dot"></span>
+                  <span data-i18n="lcd_ready">SCS LISTO • ESPERA</span>
+                </div>
+              </div>
+
+              <!-- Imagen de Video en Directo (MJPEG) -->
+              <img id="cameraStreamImg" class="live-stream hidden" alt="Video en Directo Placa de Calle" src="" />
+
+              <!-- Overlay en pantalla cuando el video está activo -->
+              <div id="videoOverlay" class="video-overlay hidden">
+                <span class="badge-live-dot" data-i18n="badge_live">● EN DIRECTO</span>
+                <span id="callCountdown" class="badge-timer">30s</span>
+                <div class="overlay-actions">
+                  <button id="btnCaptureSnapshot" class="btn-xs btn-outline" title="Capturar imagen actual" data-i18n-title="btn_snapshot_title" data-i18n="btn_snapshot">📸 Foto</button>
+                  <button id="btnFullscreen" class="btn-xs btn-outline" title="Pantalla completa" data-i18n-title="btn_fullscreen_title">⛶</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LEDs Físicos -->
+          <div id="intercomLedWifi" class="intercom-led active" title="Estado de conexión Wi-Fi / Pasarela" data-i18n-title="led_wifi_title"></div>
+          <div id="intercomLedBell" class="intercom-led" title="Indicador de timbre / llamada entrante" data-i18n-title="led_bell_title"></div>
+
+          <!-- Botones Capacitivos / Hotspots Interactivos -->
+          <!-- Fila Programable (Puntos 1 a 4) -->
+          <button type="button" id="hotspotDot1" class="intercom-hotspot" title="Punto 1: Alternar Cámara (PE0 / PE1)" data-i18n-title="tip_dot1"></button>
+          <button type="button" id="hotspotDot2" class="intercom-hotspot" title="Punto 2: Relé Auxiliar" data-i18n-title="tip_dot2"></button>
+          <button type="button" id="hotspotDot3" class="intercom-hotspot" title="Punto 3: Cerradura Secundaria (PE1)" data-i18n-title="tip_dot3"></button>
+          <button type="button" id="hotspotDot4" class="intercom-hotspot" title="Punto 4: Capturar Fotografía" data-i18n-title="tip_dot4"></button>
+
+          <!-- Fila de Funciones Principales: Estrella, Llave, Ojo -->
+          <button type="button" id="hotspotStar" class="intercom-hotspot" title="Estrella: Encender Luz de Escalera (*8*21*114##)" data-i18n-title="tip_star"></button>
+          <button type="button" id="hotspotKey" class="intercom-hotspot" title="Llave: Abrir Puerta Principal (*8*19*20##)" data-i18n-title="tip_key"></button>
+          <button type="button" id="hotspotEye" class="intercom-hotspot" title="Ojo: Mirar Calle (Auto-encendido 30s)" data-i18n-title="tip_eye"></button>
+
+          <!-- Fila Inferior de Llamada: Hablar (Descolgar) y Colgar -->
+          <button type="button" id="hotspotTalk" class="intercom-hotspot" title="Descolgar / Atender Timbre / Hablar (PTT)" data-i18n-title="tip_talk"></button>
+          <button type="button" id="hotspotHangup" class="intercom-hotspot" title="Colgar / Liberar Canal del Edificio" data-i18n-title="tip_hangup"></button>
+        </div>
+
+        <!-- Barra inferior del videoportero con información y selector de cámara rápido -->
+        <div class="intercom-device-legend">
+          <span class="legend-pill">
+            <span class="pill-dot"></span>
+            <span><span data-i18n="lbl_status">Estado:</span> <strong id="intercomStateLabel">En Espera (Standby)</strong></span>
+          </span>
+          <div class="camera-cycle-selector" style="margin: 0;">
+            <label for="selectCam" style="font-size: 0.78rem;" data-i18n="lbl_camera">Cámara:</label>
+            <select id="selectCam" class="form-select-sm" style="font-size: 0.78rem;">
+              <option value="0">Placa Exterior Principal (PE0)</option>
+              <option value="1">Cámara Interior (PE1)</option>
+            </select>
+            <button id="btnCycleCam" class="btn-sm btn-secondary" title="Alternar entre cámaras" data-i18n-title="btn_cycle_title" data-i18n="btn_cycle" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">🔄 Cambiar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acordeón para Controles Adicionales y Herramientas Técnicas -->
+      <div class="advanced-accordion" id="advancedAccordion">
+        <div class="accordion-header" id="accordionToggle">
+          <h4><span>⚙️</span> <span data-i18n="accordion_title">Opciones Avanzadas, Diagnóstico y Teclado Manual</span></h4>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="quick-actions-grid" style="margin-bottom: 1rem;">
+            <button id="btnOpenDoor" class="btn-action">
+              <span class="action-icon">🔓</span>
+              <span class="action-label" data-i18n="adv_open_door">Abrir Puerta</span>
+              <span class="action-detail" data-i18n="adv_open_door_sub">PE0 (Dir 20)</span>
+            </button>
+            <button id="btnToggleLight" class="btn-action">
+              <span class="action-icon">💡</span>
+              <span class="action-label" data-i18n="adv_light">Luz Escalera</span>
+              <span class="action-detail" data-i18n="adv_light_sub">Dir 114</span>
+            </button>
+            <button id="btnCameraTurnOn" class="btn-action">
+              <span class="action-icon">👁️</span>
+              <span class="action-label" data-i18n="adv_street_view">Mirar Calle</span>
+              <span class="action-detail" data-i18n="adv_street_view_sub">Auto-encendido 30s</span>
+            </button>
+            <button id="btnTalk" class="btn-action" disabled>
+              <span class="action-icon">🎙️</span>
+              <span class="action-label" data-i18n="adv_talk">Hablar (PTT)</span>
+              <span class="action-detail" data-i18n="adv_talk_sub">Micrófono</span>
+            </button>
+            <button id="btnEndCall" class="btn-action" disabled>
+              <span class="action-icon">📵</span>
+              <span class="action-label" data-i18n="adv_hangup">Colgar</span>
+              <span class="action-detail" data-i18n="adv_hangup_sub">Liberar SCS</span>
+            </button>
+            <button id="btnDiagnostics" class="btn-action">
+              <span class="action-icon">🩺</span>
+              <span class="action-label" data-i18n="adv_diagnostics">Test Pasarela</span>
+              <span class="action-detail" data-i18n="adv_diagnostics_sub">Ping keepalive</span>
+            </button>
+          </div>
+          <div id="doorCountdown" class="door-feedback hidden">
+            <span class="feedback-icon">✨</span>
+            <span class="feedback-msg" data-i18n="door_unlocked_msg">¡Puerta Desbloqueada!</span>
+          </div>
+          <div id="streamStatusBadge" class="badge-status standby" style="display: none;">MODO EN ESPERA</div>
+          <button id="btnStartCall" style="display: none;"></button>
+        </div>
+      </div>
+
+      <!-- Canales de Vídeo & Búfer de Streaming Live -->
+      <div class="card telemetry-card">
+        <div class="card-header">
+          <div class="header-title-group">
+            <h3 data-i18n="telemetry_title">Canales de Vídeo & Búfer de Streaming</h3>
+            <span class="header-subtitle" data-i18n="telemetry_sub">Monitoreo en vivo de memoria intermedia y sesiones de clientes por canal</span>
+          </div>
+          <div class="header-actions">
+            <span id="telemetryPulseBadge" class="telemetry-live-badge live">
+              <span class="pulse-dot"></span> <span id="telemetryPulseText" data-i18n="telemetry_live">EN VIVO</span>
+            </span>
+            <button id="btnToggleDetailedTelemetry" class="btn-sm btn-outline" title="Alternar panel de telemetría extendida" data-i18n="btn_detailed">
+              ⛶ Modo Detallado
+            </button>
+          </div>
+        </div>
+
+        <div id="channelsContainer" class="channels-grid">
+          <div class="channel-loading-placeholder" data-i18n="channels_loading">Cargando estado de canales y búfer...</div>
+        </div>
+
+        <!-- Panel de Telemetría Extendida -->
+        <div id="detailedTelemetryPanel" class="detailed-telemetry-panel hidden">
+          <div class="detailed-panel-title">
+            <span data-i18n="telemetry_details_title">🔬 Métricas de Recepción SRTP / FFmpeg Interno</span>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-box">
+              <span class="detail-label" data-i18n="lbl_udp_port">Puerto UDP RTP Externo</span>
+              <span id="telemetryRtpPort" class="detail-val">9078</span>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label" data-i18n="lbl_packets_received">Paquetes RTP Recibidos</span>
+              <span id="telemetryRtpPackets" class="detail-val">0</span>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label" data-i18n="lbl_bytes_received">Bytes RTP Recibidos</span>
+              <span id="telemetryRtpBytes" class="detail-val">0 KB</span>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label" data-i18n="lbl_frames_decoded">Fotogramas Decodificados FFmpeg</span>
+              <span id="telemetryFramesDecoded" class="detail-val">0</span>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label" data-i18n="lbl_pipe_cap">Capacidad Máxima Búfer Pipe</span>
+              <span class="detail-val">5.0 MB (5,242,880 B)</span>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label" data-i18n="lbl_poll_rate">Refresco de Telemetría</span>
+              <span id="telemetryPollRate" class="detail-val">1.0s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dispositivos Detectados en Topología -->
+      <div class="card topology-card">
+        <div class="card-header">
+          <h3 data-i18n="topology_title">Dispositivos Configurados en la Instalación</h3>
+          <span class="badge-info" id="devicesCount" data-i18n="topology_count_loading">Cargando...</span>
+        </div>
+        <div class="devices-grid" id="devicesList">
+          <!-- Elementos inyectados por JavaScript -->
+        </div>
+      </div>
+
+      <!-- Consola de Comandos OpenWebNet & Logs -->
+      <div class="card logs-card">
+        <div class="card-header clickable" id="toggleConsole">
+          <h3 data-i18n="console_title">Consola de Tramas OpenWebNet</h3>
+          <span class="toggle-arrow" id="consoleArrow">▼</span>
+        </div>
+        <div class="console-body" id="consoleBody">
+          <div class="custom-command-bar">
+            <input type="text" id="inputCustomCommand" placeholder="Ej: *8*19*20## o *8*21*114##" data-i18n-placeholder="placeholder_cmd" class="input-cmd">
+            <button id="btnSendCustom" class="btn btn-secondary" data-i18n="btn_send">Enviar Trama</button>
+          </div>
+          <div class="log-output" id="logOutput">
+            <div class="log-entry info" data-i18n="log_init">[SISTEMA] Cliente web inicializado. Listo para operar.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal de Generación / Renovación de client.crt -->
+  <div id="certModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="modal-icon">🔑</span>
+          <h3 data-i18n="modal_title">Generar / Renovar client.crt (mTLS)</h3>
+        </div>
+        <button id="btnCloseCertModal" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc" data-i18n="modal_desc">
+          Introduce tus credenciales de Legrand Eliot para enrolar un certificado oficial con la CA de Legrand.
+          El videoportero recargará el certificado mTLS inmediatamente.
+        </p>
+        <div id="certCurrentDetails" class="cert-current-box">
+          Cargando detalles de client.crt...
+        </div>
+        <form id="certGenForm" class="modal-form">
+          <div class="input-group">
+            <label for="inputCertEmail" data-i18n="lbl_email">Correo de cuenta Legrand:</label>
+            <input type="email" id="inputCertEmail" placeholder="usuario@ejemplo.com" required autocomplete="username">
+          </div>
+          <div class="input-group">
+            <label for="inputCertPassword" data-i18n="lbl_password">Contraseña:</label>
+            <input type="password" id="inputCertPassword" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <div id="certModalAlert" class="alert hidden" style="margin-bottom: 1rem; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem;"></div>
+          <button type="submit" id="btnSubmitCert" class="btn btn-primary btn-block">
+            <span class="btn-text" data-i18n="btn_submit_cert">🔐 Generar nuevo client.crt</span>
+            <span class="spinner hidden" id="certSpinner"></span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p data-i18n="footer_text">Door Entry Web Client &bull; Compatible con Legrand & BTicino Classe 100X, 300X y HomeTouch &bull; Desplegado en Docker</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

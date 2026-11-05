@@ -1,0 +1,99 @@
+# ==============================================================================
+# SENSITIVE CREDENTIALS, KEYS & CERTIFICATES (CRITICAL - NEVER COMMIT)
+# ==============================================================================
+*.key
+*.crt
+*.pem
+*.p12
+*.cer
+*.der
+*.pfx
+
+# Runtime Data and Sessions
+data/*
+!data/.gitkeep
+webapp/data/*
+!webapp/data/.gitkeep
+session.json
+tokens.json
+instance_id.txt
+*.token
+
+# Environment & Secret files
+.env
+.env.*
+!.env.example
+
+# ==============================================================================
+# HEAVY BINARIES, ARCHIVES & PACKAGES
+# ==============================================================================
+*.apk
+*.aab
+*.tar
+*.tar.gz
+*.whl
+*.zip
+*.rar
+*.7z
+*.iso
+*.bin
+
+# ==============================================================================
+# REVERSE ENGINEERING SCRATCH SCRIPTS & DUMPS
+# ==============================================================================
+inspect_*.py
+test_*.py
+dump_*.py
+search_*.py
+find_*.py
+compare_*.py
+b2c_authenticator.py
+enroll_cert.py
+capture_and_save_frame.py
+sip_helper.py
+cycle_analysis.txt
+extracted_strings.json
+lz2_methods.txt
+live_stream.sdp
+docker_snapshot.jpg
+test_*.jpg
+scratch_crops/
+*.log
+
+# ==============================================================================
+# PYTHON CACHES & BUILD ARTIFACTS
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+
+# ==============================================================================
+# IDE & OS ARTIFACTS
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini

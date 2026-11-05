@@ -1,0 +1,17 @@
+services:
+  doorentry:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    image: uniextra/doorentry:latest
+    container_name: doorentry-web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "9078:9078/udp"
+      - "7076:7076/udp"
+    volumes:
+      - ./webapp/data:/app/data
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - LOCAL_IP=${LOCAL_IP:-}

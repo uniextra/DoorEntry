@@ -1,0 +1,11 @@
+data/*.key
+data/*.crt
+data/session.json
+data/*.sdp
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.git
+.gitignore
+*.tar
