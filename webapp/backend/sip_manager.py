@@ -1972,18 +1972,12 @@ class SipManager:
 
             key_pem, csr_der_b64 = await asyncio.to_thread(_generate_csr)
 
-            # Token de Azure AD mediante httpx asíncrono
+            # Headers para solicitud de certificado a Legrand CA
             tenant_id = os.environ.get("LEGRAND_APP_TENANT_ID", "")
             app_client_id = os.environ.get("LEGRAND_APP_CLIENT_ID", "")
             app_client_secret = os.environ.get("LEGRAND_APP_CLIENT_SECRET", "")
             sub_key = os.environ.get("LEGRAND_SUBSCRIPTION_KEY", "")
 
-            token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/token?resource={app_client_id}"
-            token_data = {
-                "client_id": app_client_id,
-                "client_secret": app_client_secret,
-                "grant_type": "client_credentials"
-            }
             ca_url = "https://api.developer.legrand.com/certificate/api/v1.0/ca/information/CACerts"
             cert_url = "https://api.developer.legrand.com/certificate/api/v1.0/ca/information/clientCerts"
             cert_payload = {
@@ -1996,17 +1990,30 @@ class SipManager:
                 }
             }
 
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp_token = await client.post(token_url, data=token_data)
-                resp_token.raise_for_status()
-                app_token = resp_token.json()["access_token"]
+            headers = {
+                "UserToken": user_token,
+                "Authorization": f"Bearer {user_token}",
+                "Content-Type": "application/json"
+            }
+            if sub_key:
+                headers["Ocp-Apim-Subscription-Key"] = sub_key
 
-                headers = {
-                    "UserToken": user_token,
-                    "Authorization": f"Bearer {app_token}",
-                    "Ocp-Apim-Subscription-Key": sub_key,
-                    "Content-Type": "application/json"
-                }
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                if tenant_id and app_client_id and app_client_secret:
+                    try:
+                        token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/token?resource={app_client_id}"
+                        token_data = {
+                            "client_id": app_client_id,
+                            "client_secret": app_client_secret,
+                            "grant_type": "client_credentials"
+                        }
+                        resp_token = await client.post(token_url, data=token_data)
+                        if resp_token.status_code == 200:
+                            app_token = resp_token.json().get("access_token")
+                            if app_token:
+                                headers["Authorization"] = f"Bearer {app_token}"
+                    except Exception as te:
+                        logger.debug(f"Optional app token bypass: {te}")
 
                 resp_ca = await client.get(ca_url, headers=headers)
                 resp_ca.raise_for_status()
