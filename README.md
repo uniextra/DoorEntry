@@ -70,8 +70,8 @@ It allows you to unlock doors, trigger staircase lights, monitor street cameras,
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/uniextra/DoorEntry.git
-cd DoorEntry
+git clone https://github.com/uniextra/DoorEntry-.git
+cd DoorEntry-
 ```
 
 ### 2. Configure environment variables (optional)
